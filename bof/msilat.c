@@ -109,8 +109,14 @@ HRESULT auth_msi_server(COAUTHINFO* pAuth, PWSTR hostname, IUnknown** ppIMsiServ
     BeaconPrintf(CALLBACK_OUTPUT, "[-] Calling CoInitializeSecurity\n");
     hr = OLE32$CoInitializeSecurity(NULL, -1, NULL, NULL, pAuth->dwAuthnLevel, pAuth->dwImpersonationLevel, &sal, EOAC_NONE, NULL);
     if (FAILED(hr)) {
-        BeaconPrintf(CALLBACK_ERROR, "[!] CoInitializeSecurity Failed with: 0x%08X\n", hr);
-        return hr;
+        // RPC_E_TOO_LATE (0x80010119) means CoInitializeSecurity was already called
+        // This is expected in BOF context where COM is already initialized by Beacon
+        if (hr == 0x80010119) {
+            BeaconPrintf(CALLBACK_OUTPUT, "[*] CoInitializeSecurity already called (expected in BOF context)\n");
+        } else {
+            BeaconPrintf(CALLBACK_ERROR, "[!] CoInitializeSecurity Failed with: 0x%08X\n", hr);
+            return hr;
+        }
     }
 
     // Set Server Info only for remote connections
